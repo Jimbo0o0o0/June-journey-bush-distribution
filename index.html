@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distribution de Buissons</title>
+    <style>
+        /* Le style reste inchangé */
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2980b9;
+            --text-color: #333;
+            --background-color: #f4f4f4;
+            --border-color: #e1e1e1;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            margin: 20px auto;
+            max-width: 800px;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .input-group button {
+            padding: 10px 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .input-group button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .copy-button {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .copy-row-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .copy-row-button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        @media screen and (max-width: 600px) {
+
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
+
+            thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+
+            tr {
+                margin-bottom: 15px;
+            }
+
+            td {
+                border: none;
+                position: relative;
+                padding-left: 50%;
+            }
+
+            td:before {
+                position: absolute;
+                top: 6px;
+                left: 6px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: nowrap;
+                content: attr(data-label);
+                font-weight: bold;
+            }
+
+            .input-group input,
+            .input-group button {
+                width: 100%;
+            }
+
+            .container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <section>
+            <h1>Distribution de Buissons</h1>
+            <form>
+                <div class="input-group">
+                    <label for="membersInput">Entrez les noms des membres (séparés par des virgules) :</label>
+                    <input type="text" id="membersInput" name="member"
+                        placeholder="Alice, Bob, Charlie, David, Eve, Frank" required>
+                </div>
+                <div class="input-group">
+                    <label for="buissonsInput">Entrez les types de buissons (séparés par des virgules) :</label>
+                    <input type="text" id="buissonsInput" name="buissons"
+                        placeholder="Herbes à paillote, Streptosolens, Arbre aux papillons" required>
+                </div>
+                <div class="input-group">
+                    <button type="button" onclick="distributor.generateDistribution()">Générer Distribution</button>
+                </div>
+            </form>
+            <table id="distributionTable">
+                <thead>
+                    <tr>
+                        <th>Membre</th>
+                        <th>Buissons à Donner</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <div class="input-group copy-button" id="copyButtonContainer" style="display: none;">
+                <button type="button" onclick="distributor.copyToClipboard()">Copier tout le tableau</button>
+            </div>
+        </section>
+    </main>
+
+    <script>class BuissonDistributor {
+            constructor() {
+                this.typesBuissons = [];
+                this.tableBody = document.querySelector('#distributionTable tbody');
+                this.copyButtonContainer = document.getElementById('copyButtonContainer');
+            }
+
+            // Fonction pour normaliser en mode "slug" : accents supprimés, minuscules, espaces → -, caractères spéciaux filtrés
+            normalizeText(text) {
+                // Normalise Unicode (supprime accents)
+                text = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                // Minuscules
+                text = text.toLowerCase();
+                // Remplace espaces par tirets
+                //text = text.replace(/\s+/g, "-");
+                // Supprime tout caractère non autorisé (garde alphanum, -, :, |, =, ,)
+                //text = text.replace(/[^a-z0-9-:|=,]/g, "");
+                // Remplace tabulations par espaces (sécurité, bien que rare)
+                text = text.replace(/\t/g, " ");
+                // Optionnel : supprime d'autres caractères spéciaux si besoin (ex. : tout non-alphanumérique sauf espaces et ponctuation basique)
+                // text = text.replace(/[^a-zA-Z0-9 ,:|=]/g, "");
+                
+                return text;
+            }
+
+            /* Le reste de la classe reste inchangé : generateBuissonList, displayDistribution, etc. */
+
+            // Generates a distribution of bushes among members
+            generateBuissonList(membres) {
+                const numMembres = membres.length;
+                const numBuissons = this.typesBuissons.length;
+
+                return membres.map((member, memberIndex) => {
+                    let memberBuissons = [];
+                    // Limite le nombre de distributions au plus petit des deux :
+                    // (nombre de membres - 1) ou (nombre de buissons disponibles)
+                    const maxDistributions = Math.min(numMembres -1 , numBuissons);
+
+                    for (let j = 1; j <= maxDistributions; j++) {
+                        const recipientIndex = (memberIndex + j) % numMembres;
+                        const buissonIndex = j - 1; // Index direct sans modulo
+                        memberBuissons.push({
+                            recipient: membres[recipientIndex],
+                            buisson: this.typesBuissons[buissonIndex]
+                        });
+                    }
+                    return { member, list: memberBuissons };
+                });
+            }
+
+            // Displays the distribution in the table
+            displayDistribution(distribution) {
+                this.tableBody.innerHTML = ''; // Clear existing content
+                const fragment = document.createDocumentFragment(); // Create document fragment
+
+                distribution.forEach((entry, index) => {
+                    const row = document.createElement('tr');
+
+                    const cellMembre = this.createCell(entry.member, 'Membre');
+                    row.appendChild(cellMembre);
+
+                    const groupedBuissons = this.groupBuissons(entry.list);
+                    const cellBuissons = this.createCell(this.formatBuissons(groupedBuissons), 'Buissons à Donner');
+                    row.appendChild(cellBuissons);
+
+                    const cellAction = this.createCopyCell(index, entry.member);
+                    row.appendChild(cellAction);
+
+                    fragment.appendChild(row); // Add row to fragment
+                });
+
+                this.tableBody.appendChild(fragment); // Single DOM manipulation
+            }
+            // Helper method to create table cells with data labels for responsiveness
+            createCell(content, label) {
+                const cell = document.createElement('td');
+                cell.textContent = content;
+                cell.setAttribute('data-label', label);
+                return cell;
+            }
+
+            // Helper method to group bushes by type
+            groupBuissons(list) {
+                return list.reduce((acc, curr) => {
+                    if (!acc[curr.buisson]) acc[curr.buisson] = [];
+                    acc[curr.buisson].push(curr.recipient);
+                    return acc;
+                }, {});
+            }
+
+            // Format grouped bushes for display
+            formatBuissons(buissonMap) {
+                return Object.keys(buissonMap).map(buisson =>
+                    `${buisson}: ${buissonMap[buisson].join(', ')}`
+                ).join(' | ');
+            }
+
+            // Create the action cell for copying a row
+            createCopyCell(index, member) {
+                const cellAction = document.createElement('td');
+                const copyButton = document.createElement('button');
+                copyButton.textContent = 'Copier';
+                copyButton.className = 'copy-row-button';
+                copyButton.onclick = () => this.copyRow(index);
+                copyButton.setAttribute('aria-label', `Copier la ligne pour ${member}`);
+                cellAction.appendChild(copyButton);
+                return cellAction;
+            }
+
+            // Main function to generate distribution based on user input
+            generateDistribution() {
+                const membersInput = document.getElementById('membersInput').value;
+                const buissonsInput = document.getElementById('buissonsInput').value;
+
+                const membres = membersInput.split(',').map(name => name.trim()).filter(name => name);
+                this.typesBuissons = buissonsInput.split(',').map(type => type.trim()).filter(type => type);
+                if (membres.length < 2) {
+                    throw new Error('Il faut au moins 2 membres pour la distribution.');
+                }
+                if (new Set(membres).size !== membres.length) {
+                    throw new Error('Les noms des membres doivent être uniques.');
+                }
+                if (this.typesBuissons.length < 2) {
+                    throw new Error('Il faut au moins 2 Buissons pour la distribution.');
+                }
+                try {
+                    const distribution = this.generateBuissonList(membres);
+                    this.displayDistribution(distribution);
+                    // Show the copy button after distribution is generated
+                    this.copyButtonContainer.style.display = 'block';
+                } catch (error) {
+                    console.error('Erreur lors de la génération de la distribution:', error);
+                    alert(error.message);
+                    // Hide the copy button if there's an error
+                    this.copyButtonContainer.style.display = 'none';
+                }
+            }
+            // Copies the entire table to clipboard without tabulation and excluding the last cell
+            copyToClipboard() {
+                const table = document.getElementById('distributionTable');
+                const rows = table ? table.querySelectorAll('tr') : [];
+                let textToCopy = '';
+
+                rows.forEach((row, rowIndex) => {
+                    const cells = row.cells;
+                    if (cells && cells.length > 1) {
+                        // Exclude the last cell (usually the action cell)
+                        const cellTexts = [];
+                        for (let i = 0; i < cells.length - 1; i++) {
+                            cellTexts.push(cells[i].textContent.trim());
+                        }
+                        // Join the first two cells with " ="
+                        if (cellTexts.length >= 2) {
+                            textToCopy += `${cellTexts[0]} = ${cellTexts[1]}`;
+                        } else if (cellTexts.length === 1) {
+               https://github.com/Jimbo0o0o0/June-journey-bush-distribution
+                        }
+                    }
+                    if (rowIndex < rows.length - 1) textToCopy += '\n';
+                });
+
+                // Normalise le texte avant copie
+                textToCopy = this.normalizeText(textToCopy);
+                this.copyTextToClipboard(textToCopy);
+            }
+            // Copies a single row to clipboard
+            copyRow(index) {
+                const row = this.tableBody.querySelectorAll('tr')[index];
+                if (!row) return;
+
+                // Copy only the first two cells, separated by " ="
+                const cells = row.cells;
+                if (cells.length < 2) return;
+
+                let textToCopy = `${cells[0].textContent} = ${cells[1].textContent}\n`;
+
+                // Normalise le texte avant copie
+                textToCopy = this.normalizeText(textToCopy);
+                this.copyTextToClipboard(textToCopy);
+
+                // Highlight the row with a light blue color
+                row.style.backgroundColor = '#d0ebff'; // Light blue
+
+            }
+
+            // Helper method to copy text to clipboard with fallback
+            copyTextToClipboard(text) {
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text).catch(err => {
+                        console.error('Could not copy text:', err);
+                        this.copyTextFallback(text);
+                    });
+                } else {
+                    this.copyTextFallback(text);
+                }
+            }
+            // Fallback method for copying text if Clipboard API isn't supported
+            copyTextFallback(text) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    console.log('Copied to clipboard');
+                } catch (err) {
+                    console.error('Could not copy text:', err);
+                } finally {
+                    document.body.removeChild(textarea);
+                }
+            }
+        }
+
+        // Initialize the distributor
+        const distributor = new BuissonDistributor();
+    </script>
+</body>
+
+</html>
