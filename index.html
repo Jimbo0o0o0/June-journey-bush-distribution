@@ -204,14 +204,15 @@
                 // Normalise Unicode (supprime accents)
                 text = text.normalize("NFC") // .replace(/[\u0300-\u036f]/g, "");
                 // Minuscules
-                text = text.toLowerCase();
+                //text = text.toLowerCase();
                 // Remplace espaces par tirets
                 //text = text.replace(/\s+/g, "-");
                 // Supprime tout caractère non autorisé (garde alphanum, -, :, |, =, ,)
                 //text = text.replace(/[^a-z0-9-:|=,]/g, "");
                 // Remplace tabulations par espaces (sécurité, bien que rare)
                 text = text.replace(/\t+/g, " ");
-               
+                // Supprime les nouvelles lignes
+                text = text.replace(/[\r\n]+/g, " ");               
                 // Optionnel : supprime d'autres caractères spéciaux si besoin (ex. : tout non-alphanumérique sauf espaces et ponctuation basique)
                 // text = text.replace(/[^a-zA-Z0-9 ,:|=]/g, "");
 
